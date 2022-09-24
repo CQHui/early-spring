@@ -5,6 +5,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,6 +18,7 @@ public class ApplicationContext {
 
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>();
+    private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
 
 
     public ApplicationContext(Class configClass) {
@@ -40,21 +43,25 @@ public class ApplicationContext {
                             String className = fileName. substring(
                                     fileName.indexOf("com"), fileName.indexOf(".class"));
                             className = className.replaceAll("/", ".");
-                            Class<?> aClass;
+                            Class<?> clazz;
                             try {
-                                aClass = classLoader.loadClass(className);
-                                if (aClass.isAnnotationPresent(Component.class)) {
-                                    Component componentAnnotation  = aClass.getAnnotation(Component.class);
+                                clazz = classLoader.loadClass(className);
+                                if (clazz.isAnnotationPresent(Component.class)) {
+                                    if (BeanPostProcessor.class.isAssignableFrom(clazz)) {
+                                        beanPostProcessorList.add((BeanPostProcessor) clazz.newInstance());
+                                    }
+
+                                    Component componentAnnotation  = clazz.getAnnotation(Component.class);
                                     String beanName = componentAnnotation.value();
 
                                     if ("".equals(beanName)) {
-                                        beanName = Introspector.decapitalize(aClass.getSimpleName());
+                                        beanName = Introspector.decapitalize(clazz.getSimpleName());
                                     }
                                     //create beanDefinition
                                     BeanDefinition beanDefinition = new BeanDefinition();
-                                    beanDefinition.setType(aClass);
-                                    if (aClass.isAnnotationPresent(Scope.class)) {
-                                        Scope scopeAnnotation = aClass.getAnnotation(Scope.class);
+                                    beanDefinition.setType(clazz);
+                                    if (clazz.isAnnotationPresent(Scope.class)) {
+                                        Scope scopeAnnotation = clazz.getAnnotation(Scope.class);
                                         beanDefinition.setScope(scopeAnnotation.value());
                                     } else {
                                         beanDefinition.setScope("singleton");
@@ -63,6 +70,10 @@ public class ApplicationContext {
                                     beanDefinitionMap.put(beanName, beanDefinition);
                                 }
                             } catch (ClassNotFoundException e) {
+                                e.printStackTrace();
+                            } catch (IllegalAccessException e) {
+                                e.printStackTrace();
+                            } catch (InstantiationException e) {
                                 e.printStackTrace();
                             }
                         }
@@ -109,9 +120,17 @@ public class ApplicationContext {
                 ((BeanNameAware) instance).setBeanName(beanName);
             }
 
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                beanPostProcessor.postProcessBeforeInitialization(beanName, instance);
+            }
+
             //Initialize
             if (instance instanceof InitializingBean) {
                 ((InitializingBean) instance).afterPropertiesSet();
+            }
+
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                beanPostProcessor.postProcessAfterInitialization(beanName, instance);
             }
 
             return instance;
