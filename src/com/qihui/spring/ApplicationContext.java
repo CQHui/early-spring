@@ -1,6 +1,8 @@
 package com.qihui.spring;
 
+import java.beans.Introspector;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +14,8 @@ public class ApplicationContext {
     private Class configClass;
 
     private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, Object> singletonObjects = new ConcurrentHashMap<>();
+
 
     public ApplicationContext(Class configClass) {
         this.configClass = configClass;
@@ -35,13 +39,16 @@ public class ApplicationContext {
                             String className = fileName. substring(
                                     fileName.indexOf("com"), fileName.indexOf(".class"));
                             className = className.replaceAll("/", ".");
-                            System.out.println(className);
-                            Class<?> aClass = null;
+                            Class<?> aClass;
                             try {
                                 aClass = classLoader.loadClass(className);
                                 if (aClass.isAnnotationPresent(Component.class)) {
                                     Component componentAnnotation  = aClass.getAnnotation(Component.class);
-                                    String value = componentAnnotation.value();
+                                    String beanName = componentAnnotation.value();
+
+                                    if ("".equals(beanName)) {
+                                        beanName = Introspector.decapitalize(aClass.getSimpleName());
+                                    }
                                     //create beanDefinition
                                     BeanDefinition beanDefinition = new BeanDefinition();
                                     beanDefinition.setType(aClass);
@@ -50,7 +57,7 @@ public class ApplicationContext {
                                         beanDefinition.setScope(scopeAnnotation.value());
                                     }
 
-                                    beanDefinitionMap.put(value, beanDefinition);
+                                    beanDefinitionMap.put(beanName, beanDefinition);
                                 }
                             } catch (ClassNotFoundException e) {
                                 e.printStackTrace();
@@ -60,10 +67,48 @@ public class ApplicationContext {
                 }
             }
 
+
+            for (String beanName : beanDefinitionMap.keySet()) {
+                BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+                if (beanDefinition.getScope().equals("singleton")) {
+                    Object bean = getBean(beanName);
+                    if (bean == null) {
+                        Object o = createBean(beanName, beanDefinition);
+                        singletonObjects.put(beanName, o);
+                    }
+                }
+            }
         }
     }
 
-    public Object getBean(String beanName) {
+    private Object createBean(String beanName, BeanDefinition beanDefinition) {
+        Class clazz = beanDefinition.getType();
+        try {
+            Object o = clazz.getConstructor().newInstance();
+            return o;
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
         return null;
+    }
+
+    public Object getBean(String beanName) {
+        BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+
+        if (beanDefinition == null) {
+            throw new NullPointerException();
+        }
+
+        String scope = beanDefinition.getScope();
+        if (scope.equals("singleton")) {
+            return singletonObjects.get(beanName);
+        }
+        return createBean(beanName, beanDefinition);
     }
 }

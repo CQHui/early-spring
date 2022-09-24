@@ -11,7 +11,8 @@ public class Test {
     public static void main(String[] args) {
         ApplicationContext applicationContext = new ApplicationContext(AppConfig.class);
 
-        Object beanName = applicationContext.getBean("userService");
-        System.out.println(beanName);
+        System.out.println(applicationContext.getBean("userService"));
+        System.out.println(applicationContext.getBean("userService"));
+        System.out.println(applicationContext.getBean("userService"));
     }
 }
