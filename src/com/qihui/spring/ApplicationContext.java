@@ -2,6 +2,7 @@ package com.qihui.spring;
 
 import java.beans.Introspector;
 import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,6 +56,8 @@ public class ApplicationContext {
                                     if (aClass.isAnnotationPresent(Scope.class)) {
                                         Scope scopeAnnotation = aClass.getAnnotation(Scope.class);
                                         beanDefinition.setScope(scopeAnnotation.value());
+                                    } else {
+                                        beanDefinition.setScope("singleton");
                                     }
 
                                     beanDefinitionMap.put(beanName, beanDefinition);
@@ -84,8 +87,24 @@ public class ApplicationContext {
     private Object createBean(String beanName, BeanDefinition beanDefinition) {
         Class clazz = beanDefinition.getType();
         try {
-            Object o = clazz.getConstructor().newInstance();
-            return o;
+            Object instance = clazz.getConstructor().newInstance();
+
+            //DI
+            Field[] fields = instance.getClass().getDeclaredFields();
+            for (Field field : fields) {
+                if (field.isAnnotationPresent(Autowired.class)) {
+                    Autowired autowiredAnnotation  = field.getAnnotation(Autowired.class);
+                    field.setAccessible(true);
+                    String value = autowiredAnnotation.value();
+                    if (!"".equals(value)) {
+                        field.set(instance, getBean(value));
+                    } else {
+                        field.set(instance, getBean(field.getName()));
+
+                    }
+                }
+            }
+            return instance;
         } catch (InstantiationException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
