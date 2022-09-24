@@ -8,13 +8,14 @@ import com.qihui.spring.*;
  */
 @Scope()
 @Component
-public class UserService implements BeanNameAware, InitializingBean {
+public class UserService implements BeanNameAware, InitializingBean, UserServiceInterface {
 
     @Autowired("orderService")
     private OrderService orderService;
 
     private String beanName;
 
+    @Override
     public void test() {
         System.out.println(orderService);
     }
