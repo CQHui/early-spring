@@ -108,6 +108,12 @@ public class ApplicationContext {
             if (instance instanceof BeanNameAware) {
                 ((BeanNameAware) instance).setBeanName(beanName);
             }
+
+            //Initialize
+            if (instance instanceof InitializingBean) {
+                ((InitializingBean) instance).afterPropertiesSet();
+            }
+
             return instance;
         } catch (InstantiationException e) {
             e.printStackTrace();

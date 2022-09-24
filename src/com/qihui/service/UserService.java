@@ -1,9 +1,6 @@
 package com.qihui.service;
 
-import com.qihui.spring.Autowired;
-import com.qihui.spring.BeanNameAware;
-import com.qihui.spring.Component;
-import com.qihui.spring.Scope;
+import com.qihui.spring.*;
 
 /**
  * @author chenqihui
@@ -11,7 +8,7 @@ import com.qihui.spring.Scope;
  */
 @Scope()
 @Component
-public class UserService implements BeanNameAware {
+public class UserService implements BeanNameAware, InitializingBean {
 
     @Autowired("orderService")
     private OrderService orderService;
@@ -25,5 +22,10 @@ public class UserService implements BeanNameAware {
     @Override
     public void setBeanName(String beanName) {
         this.beanName = beanName;
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        System.out.println("afterPropertiesSet");
     }
 }
