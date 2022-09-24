@@ -100,9 +100,13 @@ public class ApplicationContext {
                         field.set(instance, getBean(value));
                     } else {
                         field.set(instance, getBean(field.getName()));
-
                     }
                 }
+            }
+
+            //Aware
+            if (instance instanceof BeanNameAware) {
+                ((BeanNameAware) instance).setBeanName(beanName);
             }
             return instance;
         } catch (InstantiationException e) {
