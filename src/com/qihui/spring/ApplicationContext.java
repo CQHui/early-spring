@@ -2,6 +2,7 @@ package com.qihui.spring;
 
 import java.io.File;
 import java.net.URL;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author chenqihui
@@ -9,6 +10,8 @@ import java.net.URL;
  */
 public class ApplicationContext {
     private Class configClass;
+
+    private ConcurrentHashMap<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<>();
 
     public ApplicationContext(Class configClass) {
         this.configClass = configClass;
@@ -36,13 +39,22 @@ public class ApplicationContext {
                             Class<?> aClass = null;
                             try {
                                 aClass = classLoader.loadClass(className);
-                                if (aClass.isAnnotationPresent(ComponentScan.class)) {
-                                    //bean name
+                                if (aClass.isAnnotationPresent(Component.class)) {
+                                    Component componentAnnotation  = aClass.getAnnotation(Component.class);
+                                    String value = componentAnnotation.value();
+                                    //create beanDefinition
+                                    BeanDefinition beanDefinition = new BeanDefinition();
+                                    beanDefinition.setType(aClass);
+                                    if (aClass.isAnnotationPresent(Scope.class)) {
+                                        Scope scopeAnnotation = aClass.getAnnotation(Scope.class);
+                                        beanDefinition.setScope(scopeAnnotation.value());
+                                    }
+
+                                    beanDefinitionMap.put(value, beanDefinition);
                                 }
                             } catch (ClassNotFoundException e) {
                                 e.printStackTrace();
                             }
-
                         }
                     }
                 }
