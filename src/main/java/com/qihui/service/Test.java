@@ -1,5 +1,6 @@
 package com.qihui.service;
 
+import com.qihui.mapper.UserMapper;
 import com.qihui.spring.ApplicationContext;
 
 /**
