@@ -1,5 +1,6 @@
 package com.qihui;
 
+import com.qihui.springmybatis.MapperScan;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.ibatis.mapping.Environment;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 
 @ComponentScan("com.qihui")
+@MapperScan("com.qihui.mapper")
 @Component
 public class AppConfig {
 
